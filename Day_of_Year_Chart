@@ -1,0 +1,32 @@
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Day of Year Chart
+
+// Define a region of interest as a buffer around a point.
+var Sample_Point = ee.Geometry.Point(30.17,-29.48).buffer(500);
+Map.addLayer(Sample_Point, {}, 'Sample Point');
+Map.centerObject(Sample_Point, 14);
+
+// Load several years of MODIS NDVI data.
+var collection = ee.ImageCollection('MODIS/MCD43A4_006_NDVI')
+    .filterDate(ee.Date('2011-01-01'), ee.Date('2014-12-31'))
+    .filterBounds(Sample_Point);
+
+var Collection_Mean = collection.mean();
+print(Collection_Mean);
+
+
+var NDVI_Palette = '00FF00, 000000';
+Map.addLayer(Collection_Mean.clip(Sample_Point), {min:-1, max:1, bands:["NDVI"], palette: NDVI_Palette}, "NDVI");
+
+// Define a chart with one series in the forest region, averaged by DOY.
+var chart1 = ui.Chart.image.doySeries(
+    collection, Sample_Point, ee.Reducer.mean(), 500);
+
+// Define a chart with a a different series for each year in the forest region.
+var chart2 = ui.Chart.image.doySeriesByYear(
+    collection, 'NDVI', Sample_Point, ee.Reducer.mean(), 500);
+
+// Display the three charts.
+print(chart1, chart2);
+

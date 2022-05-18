@@ -1,0 +1,35 @@
+//Plot spectral signature
+// Define a FeatureCollection: regions of the UMDM.
+var regions = ee.FeatureCollection([
+  ee.Feature(    // .
+    ee.Geometry.Rectangle(30.176657974755127, -29.48383211401007, 30.176657974755127, -29.484635298712128), {label: 'forest'}),
+  ee.Feature(  // .
+    ee.Geometry.Rectangle(30.15700426305275, -29.49618746970562, 30.15700426305275, -29.497718931963785), {label: 'water'}),
+  ee.Feature(  //.
+    ee.Geometry.Rectangle(30.187959804220938, -29.47830137174333,30.187959804220938, -29.478534869066724), {label: 'barearea'})
+]);
+
+// Load Sentinel-2 SR band 4
+
+var temps2013 = ee.ImageCollection('COPERNICUS/S2_SR')
+    .filterDate('2020-01-01', '2021-12-30')
+    .filterMetadata('MGRS_TILE', 'equals', '36JTN')
+    .select('B5');    
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Create a time series chart.
+var tempTimeSeries = ui.Chart.image.seriesByRegion(
+    temps2013, regions, ee.Reducer.mean(), 'B5', 200, 'system:time_start', 'label')
+        .setChartType('ScatterChart')
+        .setOptions({
+          title: 'B5 Variarion',
+          vAxis: {title: 'Band 5'},
+          lineWidth: 1,
+          pointSize: 4,
+          series: {
+            0: {color: 'FF0000'}, // forest
+            1: {color: '00FF00'}, // water
+            2: {color: '0000FF'}  // barearea
+}});
+
+// Display.
+print(tempTimeSeries);

@@ -1,0 +1,43 @@
+// Histograms
+
+// Load Sentinel-2 SR input imagery.
+var bandsIn = ee.List(['B2','B3','B4','B5','B6','B7','B8','B8A','B11','B12']);
+//var tile = ['36JTN']
+var Sentinel2_Collection = ee.ImageCollection('COPERNICUS/S2_SR')
+    .filterDate('2020-01-01', '2020-12-30')
+    .filterMetadata('MGRS_TILE', 'equals', '36JTN')
+    .select(bandsIn);
+
+// Sort by a cloud cover property, get the least cloudy image.
+var image = ee.Image(Sentinel2_Collection.sort('CLOUD_COVER').first());
+print('Least cloudy image: ', image);
+
+
+var vizTrue = {'min': 400,'max': [4000,3000,3000],   'bands':'B8,B3,B2'};
+// Center the map and display the image.
+// Define a region of interest as a buffer around a point.
+var Sample_Point = ee.Geometry.Point(30.17,-29.48).buffer(500);
+Map.addLayer(image, vizTrue, 'Sentinel2 Cloud Free Composite2');
+Map.addLayer(Sample_Point, {}, 'Sample Point');
+Map.centerObject(image, 10);
+
+// Pre-define some customization options for histogram.
+var options = {
+  title: 'UMDM Sentine 2 Histogram (Bands 2-12)',
+  fontSize: 20,
+  hAxis: {title: 'DN'},
+  vAxis: {title: 'DN Count'},
+  series: {
+    0: {color: 'blue'},
+    1: {color: 'green'},
+    2: {color: 'red'},
+    3: {color: 'magenta'}}
+};
+
+// Make the histogram, set the options.
+var histogram = ui.Chart.image.histogram(image, Sample_Point, 30)
+    .setSeriesNames(['blue', 'green', 'red', 'NIR'])
+    .setOptions(options);
+
+// Display the histogram.
+print(histogram);

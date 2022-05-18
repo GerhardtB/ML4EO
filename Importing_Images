@@ -1,0 +1,56 @@
+//////////////////////////////////////////////////////////////////////////
+//Read single band image
+var image = ee.Image("CGIAR/SRTM90_V4");
+
+//Map.centerObject(image, 9); //zoom 9
+
+Map.setCenter(30.17,-29.48,9); //latitude, longitude, zoom level
+
+//Map.addLayer(image, {min: 0, max: 3000},"custom visualization"); //display
+
+Map.addLayer(image,{min: 0, max: 3000, palette: ['blue','green','red']},'custom palette'); 
+// Let us focus on a point
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+//Read multibands
+// Load an image.
+var image = ee.Image('COPERNICUS/S2_SR/20220403T073611_20220403T080039_T36JTN');
+//pre-corrected Sentinel data
+
+// Define the visualization parameters.
+//Add your Image as a map layer
+var visParams = {'min': 400,'max': [4000,3000,3000],   'bands':'B8,B3,B2'};
+
+// Center the map and display the image.
+Map.setCenter(30.17,-29.48, 10); // UMDM
+Map.addLayer(image, visParams, 'false color composite');
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+var collection  = ee.ImageCollection('COPERNICUS/S2_SR')
+                  .filterMetadata('MGRS_TILE', 'equals', '36JTN')
+                  .filterDate('2021-04-20', '2022-04-30');
+print('Collection: ', collection);
+// Convert the collection to a list and get the number of images.
+var size = collection.toList(100).length();
+print('Number of images: ',size);
+
+// Get the number of images.
+var count = collection.size();
+print('Count: ',count);
+
+// Get the date range of images in the collection
+var dates = ee.List(collection.get('date_range'));
+var dateRange = ee.DateRange(dates.get(0),dates.get(1));
+print(dateRange);
+
+// Sort by a cloud cover property, get the least cloudy image
+var image = ee.Image(collection.sort('CLOUD_COVER').first());
+print('Least cloudy image: ', image);
+
+/////////////////////////////////////////////////////////////////////////////////////////////   
+
+
+
+

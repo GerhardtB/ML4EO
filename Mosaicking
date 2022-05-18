@@ -1,0 +1,29 @@
+//  Mosaicking
+// Load countries boundaries data
+
+var dataset = ee.FeatureCollection("FAO/GAUL/2015/level2");
+var UMGD= dataset.filter(ee.Filter.eq('ADM2_NAME', 'Umgungundlovu District Municipality'));
+Map.addLayer(UMGD, {'palette': 'f03b20', 'opacity': 1}, "UMGD", false);
+
+// Load an image collection.
+// var images = ee.ImageCollection('LANDSAT/LC08/C01/T1_TOA')
+// .filterDate('2022-04-01','2022-04-31')
+// .filterBounds(UMGD);
+// print(images.size());
+
+var bandsIn = ee.List(['B2','B3','B4','B5','B6','B7','B8','B8A','B11','B12']);
+var images = ee.ImageCollection('COPERNICUS/S2_SR')
+.filterDate('2022-01-01', '2022-04-30')
+.filterBounds(UMGD)
+.select(bandsIn);
+print(images.size());
+    
+// Spatially mosaic the images in the collection and display.
+var imageMosaic = images.mosaic();
+var visParams = {'min': 400,'max': [4000,3000,3000],   'bands':'B8,B3,B2'};
+Map.addLayer(imageMosaic, visParams, 'Mosaic Sentinel-2');
+Map.centerObject(UMGD, 6);
+
+
+////////////////////////////////////////////////////
+//image clipping
