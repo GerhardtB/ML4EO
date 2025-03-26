@@ -1,0 +1,75 @@
+// Sentinel-2/ Normalized Difference Vegetation Index (NDVI) script, modified  by Cecilia Masemola  (Cecilia.mulukwane@gmail.com)
+var dataset = ee.FeatureCollection("FAO/GAUL/2015/level2");
+
+var geometry= dataset.filter(ee.Filter.eq('ADM2_NAME', 'Umgungundlovu District Municipality'));
+
+var ndvi_palette = 'FFFFFF, CE7E45, DF923D, F1B555, FCD163, 99B718, 74A901, 66A000, 529400, ' + '3E8601, 207401, 056201, 004C00, 023B01, 012E01, 011D01, 011301';
+
+// Sentinel-2 (late 2015-)
+var S2_display = {bands: ['B4', 'B3', 'B2'], min: 0, max: 3000};
+
+function addnd(input) {
+  var nd = input.normalizedDifference(['B8', 'B4']).rename('ndvi');
+  return input.addBands(nd);
+}
+
+var S2_collection = ee.ImageCollection("COPERNICUS/S2")
+  .filterBounds(geometry)
+  .filterDate('2021-02-01', '2022-04-30')
+  .filterMetadata('CLOUDY_PIXEL_PERCENTAGE', 'less_than', 10)
+  .map(addnd);
+
+print(S2_collection);
+
+var S2_mosaic = S2_collection.median().clip(geometry);
+
+Map.addLayer(S2_mosaic, S2_display, "Sentinel-2");
+
+var ndvi_S2 = S2_collection.select('ndvi').median().clip(geometry);
+
+Map.addLayer(ndvi_S2, {min: -0.1, max: 1, palette: ndvi_palette}, 'NDVI S2',false);
+
+Map.centerObject(geometry);
+
+// import the batch tool
+
+// Download images for a set region
+
+// Create palettes for display of NDVI
+var ndvi_pal = ['#d73027', '#f46d43', '#fdae61', '#fee08b', '#d9ef8b',
+'#a6d96a'];
+
+// Create a time series chart.
+var plotNDVI = ui.Chart.image.seriesByRegion(S2_collection, geometry,ee.Reducer.mean(),
+'ndvi',500,'system:time_start', 'system:index')
+              .setChartType('LineChart').setOptions({
+                title: 'NDVI short-term time series',
+                hAxis: {title: 'Date'},
+                vAxis: {title: 'NDVI'}
+});
+
+// Display.
+print(plotNDVI);
+
+// import the batch tool
+var batch = require('users/fitoprincipe/geetools:batch')
+// Download images for a set region
+batch.Download.ImageCollection.toDrive(S2_collection.select('ndvi'), 'UMGDV_S2NDVI', 
+              {region:geometry,
+                crs: 'EPSG:4326',
+                scale:10,
+                type: 'float'})
+
+
+// Export the image to your Google Drive account.
+// Export the image to your Google Drive account.
+// Export.image.toDrive({
+//   image: ndvi_S2,
+//   description: 'ndvi_S2',
+//   folder: 'my_folderndvi_S2',
+//   region: geometry,
+//   scale: 10,
+//   crs: 'EPSG:4326',
+//   type: 'float', 
+//   maxPixels: 1e10}); 
+//  

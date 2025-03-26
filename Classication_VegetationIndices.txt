@@ -1,0 +1,74 @@
+var s2 = ee.ImageCollection("COPERNICUS/S2"),
+    s1 = ee.ImageCollection("COPERNICUS/S1_GRD");
+
+// Define period 
+var startdate = ee.Date.fromYMD(2014,1,1);
+var enddate = ee.Date.fromYMD(2016,12,1);
+
+// Define geograpic domain
+
+var dataset = ee.FeatureCollection("FAO/GAUL/2015/level2");
+var UMGD= dataset.filter(ee.Filter.eq('ADM2_NAME', 'Umgungundlovu District Municipality'));
+Map.addLayer(UMGD,{color: 'blue'}, 'UMGD')
+Map.centerObject(UMGD, 8)
+// filter s2 data
+var Sentinel2 = s2.filterBounds(UMGD)
+                .filterDate(startdate, enddate)
+                .filterBounds(UMGD);
+                
+// filter s1 data
+var Sentinel1 =  ee.ImageCollection('COPERNICUS/S1_GRD')
+                    .filterBounds(UMGD)
+                    .filterDate(startdate, enddate)
+                    .filter(ee.Filter.listContains('transmitterReceiverPolarisation', 'VV'))
+                    .select('VV');
+
+// cloud function to remove clouds
+var cloudfunction_ST2 = function(image){
+  //use add the cloud likelihood band to the image
+  var quality = image.select("QA60").unmask();
+  //get pixels above the threshold
+  var cloud01 = quality.gt(0);
+  //create a mask from high likelihood pixels
+  var cloudmask = image.mask().and(cloud01.not());
+  //mask those pixels from the image
+  return image.updateMask(cloudmask);
+};
+
+// remove the clouds
+var ST2_nocloud = Sentinel2.map(cloudfunction_ST2);
+
+// take the median
+var st2median = ST2_nocloud.median();
+
+// the normalized difference bare index
+var ndbi = st2median.normalizedDifference(['B12', 'B8']);
+
+// the normalized difference vegetation index
+var ndvi = st2median.normalizedDifference(['B8', 'B4']);
+
+// the normalize difference water index
+var ndwi = st2median.normalizedDifference(['B3', 'B8']);
+
+// define thresholds
+var bareThreshold = -0.32
+var vegetationThreshold = 0.65
+var waterThreshold = 0.2
+
+// show the urban area
+var ndbi_th = ndbi.gt(bareThreshold)
+var myndbi = ndbi_th.updateMask(ndbi_th).clip(UMGD)
+var ndbi_viz = {palette:"111101"};
+Map.addLayer(myndbi, ndbi_viz, 'Urban');
+
+// show the water areas
+var ndwi_th = ndwi.gt(waterThreshold)
+var myndwi = ndwi_th.updateMask(ndwi_th).clip(UMGD)
+var ndwi_viz = {palette:"24069b"};
+Map.addLayer(myndwi, ndwi_viz, 'Water');
+
+// show the forests
+var ndvi_th = ndvi.gt(vegetationThreshold)
+var myndvi = ndvi_th.updateMask(ndvi_th).clip(UMGD)
+var ndvi_viz = {palette:"006b0c"};
+Map.addLayer(myndvi, ndvi_viz, 'Vegetation');

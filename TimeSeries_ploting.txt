@@ -1,0 +1,23 @@
+// Time Series Chart
+// Load Sentinel-2 SR input imagery.
+var bandsIn = ee.List(['B2','B3','B4','B5','B6','B7','B8','B8A','B11','B12'])
+var Sentinel2_Collection = ee.ImageCollection('COPERNICUS/S2_SR')
+    .filterDate('2020-01-01', '2022-04-30')
+    .filterMetadata('MGRS_TILE', 'equals', '36JTN')
+    .select(bandsIn);
+
+// Sort by a cloud cover property, get the least cloudy image.
+var image = ee.Image(Sentinel2_Collection.sort('CLOUD_COVER').first());
+print('Least cloudy image: ', image);
+
+//Display Map
+var visParams = {'min': 400,'max': [4000,3000,3000],   'bands':'B8,B3,B2'};
+
+// Define a region of interest as a buffer around a point.
+var Sample_Point = ee.Geometry.Point(30.17,-29.48).buffer(500);
+Map.addLayer(image, visParams, 'Sentinel-2 Cloud Free Composite');
+Map.addLayer(Sample_Point, {}, 'Sample Point');
+Map.centerObject(image, 10);
+
+// Create and print the chart.
+print(ui.Chart.image.series(Sentinel2_Collection, Sample_Point, ee.Reducer.mean(), 30));
